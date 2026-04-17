@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\FlavorController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
