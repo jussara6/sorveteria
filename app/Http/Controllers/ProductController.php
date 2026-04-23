@@ -15,7 +15,14 @@ class ProductController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $product = Product::create($request->only(['name', 'description', 'price', 'is_available']));
+        $product = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'price' => 'required|numeric|min:0',
+            'is_available' => 'boolean',
+        ]);
+
+        $product = Product::create($product);
 
         return response()->json($product, 201);
     }
@@ -27,7 +34,12 @@ class ProductController extends Controller
 
     public function update(Request $request, Product $product): JsonResponse
     {
-        $product->update($request->only(['name', 'description', 'price', 'is_available']));
+        $product->update($request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'price' => 'required|numeric|min:0',
+            'is_available' => 'boolean',
+        ]));
 
         return response()->json($product->fresh());
     }
@@ -36,6 +48,6 @@ class ProductController extends Controller
     {
         $product->delete();
 
-        return response()->json(status: 204);
+        return response()->json(null, 204);
     }
 }
