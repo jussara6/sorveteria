@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\StoreCategoryRequest;
-use App\Http\Requests\UpdateCategoryRequest;
 use App\Models\Category;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class CategoryController extends Controller
 {
@@ -13,9 +13,14 @@ class CategoryController extends Controller
         return Category::query()->latest()->paginate(10);
     }
 
-    public function store(StoreCategoryRequest $request)
+    public function store(Request $request)
     {
-        return Category::create($request->validated());
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255', 'unique:categories,name'],
+            'description' => ['nullable', 'string'],
+        ]);
+
+        return Category::create($validated);
     }
 
     public function show(Category $category)
@@ -23,9 +28,20 @@ class CategoryController extends Controller
         return $category;
     }
 
-    public function update(UpdateCategoryRequest $request, Category $category)
+    public function update(Request $request, Category $category)
     {
-        $category->update($request->validated());
+        $validated = $request->validate([
+            'name' => [
+                'sometimes',
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('categories', 'name')->ignore($category->getKey()),
+            ],
+            'description' => ['sometimes', 'nullable', 'string'],
+        ]);
+
+        $category->update($validated);
 
         return $category->fresh();
     }
