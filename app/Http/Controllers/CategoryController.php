@@ -2,54 +2,46 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreCategoryRequest;
+use App\Http\Requests\UpdateCategoryRequest;
+use App\Http\Resources\CategoryResource;
 use App\Models\Category;
-use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class CategoryController extends Controller
 {
-    public function index()
+    public function index(): AnonymousResourceCollection
     {
-        return Category::query()->latest()->paginate(10);
+        return CategoryResource::collection(Category::query()->latest()->paginate(10));
     }
 
-    public function store(Request $request)
+    public function store(StoreCategoryRequest $request): CategoryResource
     {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255', 'unique:categories,name'],
-            'description' => ['nullable', 'string'],
-        ]);
+        $validated = $request->validated();
 
-        return Category::create($validated);
+        $category = Category::create($validated);
+
+        return new CategoryResource($category);
     }
 
-    public function show(Category $category)
+    public function show(Category $category): CategoryResource
     {
-        return $category;
+        return new CategoryResource($category);
     }
 
-    public function update(Request $request, Category $category)
+    public function update(UpdateCategoryRequest $request, Category $category): CategoryResource
     {
-        $validated = $request->validate([
-            'name' => [
-                'sometimes',
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('categories', 'name')->ignore($category->getKey()),
-            ],
-            'description' => ['sometimes', 'nullable', 'string'],
-        ]);
+        $validated = $request->validated();
 
         $category->update($validated);
 
-        return $category->fresh();
+        return new CategoryResource($category->fresh());
     }
 
-    public function destroy(Category $category): array
+    public function destroy(Category $category): \Illuminate\Http\JsonResponse
     {
         $category->delete();
 
-        return ['message' => 'Categoria removida com sucesso.'];
+        return response()->json(null, 204);
     }
 }

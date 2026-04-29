@@ -2,59 +2,47 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreFlavorRequest;
+use App\Http\Requests\UpdateFlavorRequest;
+use App\Http\Resources\FlavorResource;
 use App\Models\Flavor;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class FlavorController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(): AnonymousResourceCollection
     {
-        return response()->json(Flavor::query()->orderBy('name')->get());
+        return FlavorResource::collection(Flavor::query()->orderBy('name')->get());
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreFlavorRequest $request): FlavorResource
     {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255', 'unique:flavors,name'],
-            'description' => ['nullable', 'string'],
-            'is_available' => ['sometimes', 'boolean'],
-        ]);
+        $validated = $request->validated();
 
         $flavor = Flavor::create($validated);
 
-        return response()->json($flavor, 201);
+        return new FlavorResource($flavor);
     }
 
-    public function show(Flavor $flavor): JsonResponse
+    public function show(Flavor $flavor): FlavorResource
     {
-        return response()->json($flavor);
+        return new FlavorResource($flavor);
     }
 
-    public function update(Request $request, Flavor $flavor): JsonResponse
+    public function update(UpdateFlavorRequest $request, Flavor $flavor): FlavorResource
     {
-        $validated = $request->validate([
-            'name' => [
-                'sometimes',
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('flavors', 'name')->ignore($flavor->getKey()),
-            ],
-            'description' => ['sometimes', 'nullable', 'string'],
-            'is_available' => ['sometimes', 'boolean'],
-        ]);
+        $validated = $request->validated();
 
         $flavor->update($validated);
 
-        return response()->json($flavor->fresh());
+        return new FlavorResource($flavor->fresh());
     }
 
     public function destroy(Flavor $flavor): JsonResponse
     {
         $flavor->delete();
 
-        return response()->json(status: 204);
+        return response()->json(null, 204);
     }
 }
