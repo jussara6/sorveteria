@@ -2,46 +2,60 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreProductRequest;
+use App\Http\Requests\UpdateProductRequest;
+use App\Http\Resources\ProductResource;
 use App\Models\Product;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class ProductController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(): AnonymousResourceCollection
     {
-        return response()->json(Product::query()->orderBy('name')->get());
+        $products = Product::query()
+            ->with(['category', 'flavors'])
+            ->orderBy('name')
+            ->get();
+
+        return ProductResource::collection($products);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreProductRequest $request): ProductResource
     {
-        $product = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
-            'is_available' => 'boolean',
-        ]);
+        $validated = $request->validated();
 
-        $product = Product::create($product);
+        $flavorIds = $validated['flavor_ids'] ?? null;
+        unset($validated['flavor_ids']);
 
-        return response()->json($product, 201);
+        $product = Product::create($validated);
+
+        if ($flavorIds !== null) {
+            $product->flavors()->sync($flavorIds);
+        }
+
+        return new ProductResource($product->load(['category', 'flavors']));
     }
 
-    public function show(Product $product): JsonResponse
+    public function show(Product $product): ProductResource
     {
-        return response()->json($product);
+        return new ProductResource($product->load(['category', 'flavors']));
     }
 
-    public function update(Request $request, Product $product): JsonResponse
+    public function update(UpdateProductRequest $request, Product $product): ProductResource
     {
-        $product->update($request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
-            'is_available' => 'boolean',
-        ]));
+        $validated = $request->validated();
 
-        return response()->json($product->fresh());
+        $flavorIds = $validated['flavor_ids'] ?? null;
+        unset($validated['flavor_ids']);
+
+        $product->update($validated);
+
+        if ($flavorIds !== null) {
+            $product->flavors()->sync($flavorIds);
+        }
+
+        return new ProductResource($product->load(['category', 'flavors']));
     }
 
     public function destroy(Product $product): JsonResponse

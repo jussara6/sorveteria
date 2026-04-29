@@ -4,36 +4,44 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreCategoryRequest;
 use App\Http\Requests\UpdateCategoryRequest;
+use App\Http\Resources\CategoryResource;
 use App\Models\Category;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class CategoryController extends Controller
 {
-    public function index()
+    public function index(): AnonymousResourceCollection
     {
-        return Category::query()->latest()->paginate(10);
+        return CategoryResource::collection(Category::query()->latest()->paginate(10));
     }
 
-    public function store(StoreCategoryRequest $request)
+    public function store(StoreCategoryRequest $request): CategoryResource
     {
-        return Category::create($request->validated());
+        $validated = $request->validated();
+
+        $category = Category::create($validated);
+
+        return new CategoryResource($category);
     }
 
-    public function show(Category $category)
+    public function show(Category $category): CategoryResource
     {
-        return $category;
+        return new CategoryResource($category);
     }
 
-    public function update(UpdateCategoryRequest $request, Category $category)
+    public function update(UpdateCategoryRequest $request, Category $category): CategoryResource
     {
-        $category->update($request->validated());
+        $validated = $request->validated();
 
-        return $category->fresh();
+        $category->update($validated);
+
+        return new CategoryResource($category->fresh());
     }
 
-    public function destroy(Category $category): array
+    public function destroy(Category $category): \Illuminate\Http\JsonResponse
     {
         $category->delete();
 
-        return ['message' => 'Categoria removida com sucesso.'];
+        return response()->json(null, 204);
     }
 }
